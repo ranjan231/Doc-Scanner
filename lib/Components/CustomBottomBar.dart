@@ -17,21 +17,21 @@ class CustomBottomNavBar extends StatelessWidget {
         children: [
           _buildNavItem(
               image:
-                  Image.asset('assets/images/home.png', width: 35, height: 35),
+                  Image.asset('assets/images/home.png', width: 35, height: 30),
               0),
           _buildNavItem(
-              image: Image.asset('assets/images/rewards.png',
-                  width: 35, height: 35),
+              image: Image.asset('assets/images/docs.png',
+                  width: 35, height: 30),
               1),
           SizedBox(width: 30),
           
           _buildNavItem(
-              image: Image.asset('assets/images/profile.png',
-                  width: 35, height: 35),
+              image: Image.asset('assets/images/tools.png',
+                  width: 35, height: 30),
               3),
           _buildNavItem(
               image:
-                  Image.asset('assets/images/about.png', width: 35, height: 35),
+                  Image.asset('assets/images/user.png', width: 35, height: 30),
               4),
         ],
       ),
