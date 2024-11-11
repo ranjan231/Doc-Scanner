@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1011548283086",
+    "project_id": "doc-scanner-546a9",
+    "storage_bucket": "doc-scanner-546a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011548283086:android:68d20baf12971dc92c709f",
+        "android_client_info": {
+          "package_name": "com.example.flutterpracticeversion22"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiF7InSUdjjIginyWV9V0jyshr0yeCNWQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
