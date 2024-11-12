@@ -1,5 +1,7 @@
-// SignInScreen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterpracticeversion22/Screen/HomeScreen/HomeScreen.dart';
+
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -15,6 +17,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool isPasswordVisible = false;
   bool isRememberMeChecked = false;
   bool isButtonEnabled = false;
+  bool isLoading = false; // New variable to show loading indicator
 
   @override
   void initState() {
@@ -32,8 +35,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   void _validateFields() {
     setState(() {
-      isButtonEnabled =
-          emailController.text.isNotEmpty && passwordController.text.isNotEmpty;
+      isButtonEnabled = emailController.text.isNotEmpty && passwordController.text.isNotEmpty;
     });
   }
 
@@ -53,7 +55,6 @@ class _SignInScreenState extends State<SignInScreen> {
     if (value == null || value.isEmpty) {
       return 'Please enter your email';
     }
-    // Simple email regex pattern
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email';
@@ -71,9 +72,52 @@ class _SignInScreenState extends State<SignInScreen> {
     return null;
   }
 
-  void signIn() {
+  Future<void> signIn() async {
     if (_formKey.currentState!.validate()) {
-      // Implement sign-in logic here
+      setState(() {
+        isLoading = true; // Show loading
+      });
+
+      try {
+        // Query Firestore for the user document with the matching email
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: emailController.text)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          // Check if the password matches
+          final userDoc = querySnapshot.docs.first;
+          final storedPassword = userDoc['password'];
+
+          if (storedPassword == passwordController.text) {
+            // Credentials are correct, navigate to the HomeScreen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomeScreen()), // Replace with actual HomeScreen
+            );
+          } else {
+            // Show error if password does not match
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Incorrect password.')),
+            );
+          }
+        } else {
+          // Show error if no user is found with the email
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No account found with this email.')),
+          );
+        }
+      } catch (e) {
+        // Handle Firestore errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error signing in: $e')),
+        );
+      } finally {
+        setState(() {
+          isLoading = false; // Hide loading
+        });
+      }
     }
   }
 
@@ -101,7 +145,7 @@ class _SignInScreenState extends State<SignInScreen> {
             const SizedBox(height: 20),
             Center(
               child: Text(
-                "Please enter your email & password to sign",
+                "Please enter your email & password to sign in",
                 style: TextStyle(color: Colors.black),
               ),
             ),
@@ -136,9 +180,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       prefixIcon: Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                          isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                         ),
                         onPressed: togglePasswordVisibility,
                       ),
@@ -168,30 +210,28 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             const SizedBox(height: 30),
 
-            // Continue Button
+            // Continue Button with Loader
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isButtonEnabled
-                    ? signIn
-                    : null, // Disable button if fields are invalid
+                onPressed: isButtonEnabled && !isLoading ? signIn : null,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white,
-                  backgroundColor:
-                      isButtonEnabled ? Colors.blue : Colors.grey[400],
+                  backgroundColor: isButtonEnabled ? Colors.blue : Colors.grey[400],
                   padding: EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text(
-                  "Continue",
-                  style: TextStyle(
-                    color:
-                        Colors.white.withOpacity(isButtonEnabled ? 1.0 : 0.7),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        "Continue",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(isButtonEnabled ? 1.0 : 0.7),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],

@@ -1,5 +1,7 @@
 // SignUpScreen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterpracticeversion22/Screen/SigninScreen/SigninScreen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -17,6 +19,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool isPasswordVisible = false;
   bool isRememberMeChecked = false;
   bool isButtonEnabled = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -95,12 +98,71 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
-  void createAccount() {
-    if (_formKey.currentState!.validate()) {
-      // Implement account creation logic here
+  void createAccount() async {
+  if (_formKey.currentState!.validate()) {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+    
+    try {
+      // Check if the email already exists in the 'users' collection
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: emailController.text)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Email already exists, show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An account with this email already exists.')),
+        );
+      } else {
+        // Email does not exist, proceed with account creation
+        await FirebaseFirestore.instance.collection('users').add({
+          'name': nameController.text,
+          'email': emailController.text,
+          'phone': phoneController.text,
+          'password': passwordController.text, // In production, use secure storage for passwords
+          'rememberMe': isRememberMeChecked,
+          'createdAt': FieldValue.serverTimestamp(), // Store the server timestamp
+        });
+
+        // Clear the fields and reset the form
+        nameController.clear();
+        emailController.clear();
+        phoneController.clear();
+        passwordController.clear();
+        setState(() {
+          isRememberMeChecked = false;
+          isButtonEnabled = false;
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Account created successfully!')),
+        );
+
+        // Navigate to the SignInScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SignInScreen()),
+        );
+      }
+    } catch (e) {
+      // Handle Firestore errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create account: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false; // Stop loading
+      });
     }
   }
+}
 
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -241,7 +303,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: Text(
+                  child: isLoading
+                      ? CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                  :
+                  Text(
                     "Create Account",
                     style: TextStyle(
                       color: Colors.white.withOpacity(isButtonEnabled ? 1.0 : 0.7),
