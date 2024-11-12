@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -19,18 +20,17 @@ class _HomeScreenState extends State<HomeScreen> {
         const Center(
             child: Text('Tools Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
-        _buildProfileForm(),
+        profileScreen(),
       ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Document Scanner'),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
+     
+      body: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 25),
+        child: _widgetOptions[_selectedIndex],
       ),
-      body: _widgetOptions[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
@@ -182,73 +182,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProfileForm() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-        child: Column(
-          children: [
-            // Profile image
-            CircleAvatar(
-              radius: 45,
-              backgroundImage: AssetImage(
-                  'assets/images/profile1.png'), // Replace with user's image if available
-            ),
-            const SizedBox(height: 10),
-
-            // User's name and email
-            const Text(
-              'Fahmi Haecal',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              'haecal78@gmail.com',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-
-            // Edit Profile button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  print('Edit Profile clicked');
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                      color: Colors.blue), // Set the border color to blue
-                  foregroundColor: Colors.blue, // Text color
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8), // Rounded corners
-                  ),
-                ),
-                child: const Text('Edit Profile'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildProfileOption(Icons.insert_drive_file, 'Doc Management'),
-            _buildProfileOption(Icons.help, 'Help'),
-            _buildProfileOption(Icons.description, 'Terms of Services'),
-            _buildProfileOption(Icons.privacy_tip, 'Privacy Policy'),
-
-            // Logout button
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.red),
-              title: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red,fontWeight: FontWeight.bold),
-              ),
-              onTap: () {
-                print('User logged out');
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 
