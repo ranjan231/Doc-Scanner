@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
+import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+
+import '../../Controller/Controller.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -7,16 +12,57 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  var manager = Controller();
   int _selectedIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    manager.options = DocumentScannerOptions(
+      pageLimit: 1,
+      documentFormat: DocumentFormat.jpeg,
+      mode: ScannerMode.full,
+      isGalleryImport: false,
+    );
+    manager.documentScanner = DocumentScanner(options: manager.options);
+   
+  }
+
+ Future<void> _startScan() async {
+    setState(() => manager.isScanning = true);
+    try {
+      final result = await manager.documentScanner.scanDocument();
+      setState(() {
+        manager.scanResult = result;
+        if (manager.scanResult!.images.isNotEmpty) {
+          manager.scannedImages.addAll(manager.scanResult!.images);
+          manager.selectedImages.addAll(List.generate(manager.scanResult!.images.length, (_) => false));
+        }
+        manager.isScanning = false;
+      });
+       if (manager.scannedImages.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ScannerScreen(scannedImages: manager.scannedImages),
+          fullscreenDialog: true, // Sets the screen to open in fullscreen mode
+        ),
+      );
+    }
+    } on PlatformException catch (e) {
+      setState(() => manager.isScanning = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error scanning document: ${e.message}')),
+      );
+    }
+  }
 
   List<Widget> get _widgetOptions => <Widget>[
         _buildHomeScreen(),
         const Center(
             child: Text('Rewards Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
-        const Center(
-            child: Text('Camera Screen',
-                style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
+        // ScannerScreen(),
+        SizedBox(),
+
         const Center(
             child: Text('Tools Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
@@ -26,7 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 25),
         child: _widgetOptions[_selectedIndex],
@@ -72,6 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // color: Colors.blue,
                 ),
                 onPressed: () {
+                  // _startScan();
+                  _startScan();
+                  
+
                   _onItemTapped(2);
                 },
               ),
@@ -102,9 +151,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index != 2) {
+      // Skip changing _selectedIndex for the scan button
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   Widget _buildHomeScreen() {
@@ -188,7 +240,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildProfileOption(IconData icon, String label) {
     return ListTile(
       leading: Icon(icon, color: Colors.grey),
-      title: Text(label,style: TextStyle(fontWeight: FontWeight.bold),),
+      title: Text(
+        label,
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
       trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey),
       onTap: () {
         print('$label tapped');
