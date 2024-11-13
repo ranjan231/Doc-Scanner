@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
+import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 
@@ -254,6 +255,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCardItem(IconData iconData, String label, Color color) {
     return GestureDetector(
       onTap: () {
+         if(label=='Compress PDF'){
+          Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => PDFCompressonScreen(),
+          fullscreenDialog: true, // Sets the screen to open in fullscreen mode
+        ),
+      );
+
+        }
         print('$label clicked');
       },
       child: Column(
