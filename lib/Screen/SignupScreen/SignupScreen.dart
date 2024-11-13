@@ -1,4 +1,3 @@
-// SignUpScreen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterpracticeversion22/Screen/SigninScreen/SigninScreen.dart';
@@ -99,70 +98,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void createAccount() async {
-  if (_formKey.currentState!.validate()) {
-    setState(() {
-      isLoading = true; // Start loading
-    });
-    
-    try {
-      // Check if the email already exists in the 'users' collection
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: emailController.text)
-          .get();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        // Email already exists, show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An account with this email already exists.')),
-        );
-      } else {
-        // Email does not exist, proceed with account creation
-        await FirebaseFirestore.instance.collection('users').add({
-          'name': nameController.text,
-          'email': emailController.text,
-          'phone': phoneController.text,
-          'password': passwordController.text, // In production, use secure storage for passwords
-          'rememberMe': isRememberMeChecked,
-          'createdAt': FieldValue.serverTimestamp(), // Store the server timestamp
-        });
-
-        // Clear the fields and reset the form
-        nameController.clear();
-        emailController.clear();
-        phoneController.clear();
-        passwordController.clear();
-        setState(() {
-          isRememberMeChecked = false;
-          isButtonEnabled = false;
-        });
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Account created successfully!')),
-        );
-
-        // Navigate to the SignInScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SignInScreen()),
-        );
-      }
-    } catch (e) {
-      // Handle Firestore errors
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create account: $e')),
-      );
-    } finally {
+    if (_formKey.currentState!.validate()) {
       setState(() {
-        isLoading = false; // Stop loading
+        isLoading = true;
       });
+
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: emailController.text)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('An account with this email already exists.')),
+          );
+        } else {
+          await FirebaseFirestore.instance.collection('users').add({
+            'name': nameController.text,
+            'email': emailController.text,
+            'phone': phoneController.text,
+            'password': passwordController.text,
+            'rememberMe': isRememberMeChecked,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          nameController.clear();
+          emailController.clear();
+          phoneController.clear();
+          passwordController.clear();
+          setState(() {
+            isRememberMeChecked = false;
+            isButtonEnabled = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Account created successfully!')),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SignInScreen()),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create account: $e')),
+        );
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
-}
 
-
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -197,7 +188,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Name Input
                     TextFormField(
                       controller: nameController,
                       decoration: InputDecoration(
@@ -213,8 +203,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       validator: validateName,
                     ),
                     const SizedBox(height: 20),
-        
-                    // Email Input
                     TextFormField(
                       controller: emailController,
                       decoration: InputDecoration(
@@ -230,8 +218,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       validator: validateEmail,
                     ),
                     const SizedBox(height: 20),
-        
-                    // Phone Number Input
                     TextFormField(
                       controller: phoneController,
                       decoration: InputDecoration(
@@ -248,8 +234,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       validator: validatePhone,
                     ),
                     const SizedBox(height: 20),
-        
-                    // Password Input with Visibility Toggle
                     TextFormField(
                       controller: passwordController,
                       obscureText: !isPasswordVisible,
@@ -277,8 +261,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-        
-              // Remember Me Checkbox
               Row(
                 children: [
                   Checkbox(
@@ -289,15 +271,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ],
               ),
               const SizedBox(height: 30),
-        
-              // Create Account Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isButtonEnabled ? createAccount : null, // Disable button if fields are invalid
+                  onPressed: isButtonEnabled ? createAccount : null,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor: isButtonEnabled ? Colors.blue : Colors.grey[400],
+                    backgroundColor:
+                        isButtonEnabled ? Colors.blue : Colors.grey[400],
                     padding: EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -307,14 +288,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ? CircularProgressIndicator(
                           color: Colors.white,
                         )
-                  :
-                  Text(
-                    "Create Account",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(isButtonEnabled ? 1.0 : 0.7),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                      : Text(
+                          "Create Account",
+                          style: TextStyle(
+                            color: Colors.white
+                                .withOpacity(isButtonEnabled ? 1.0 : 0.7),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],

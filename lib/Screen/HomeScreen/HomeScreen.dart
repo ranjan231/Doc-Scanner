@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const Center(
             child: Text('Tools Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
-        profileScreen(),
+        ProfileScreen(),
       ];
 
   @override

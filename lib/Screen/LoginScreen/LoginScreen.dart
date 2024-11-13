@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutterpracticeversion22/Screen/HomeScreen/HomeScreen.dart';
 import 'package:flutterpracticeversion22/Screen/SigninScreen/SigninScreen.dart';
 import 'package:flutterpracticeversion22/Screen/SignupScreen/SignupScreen.dart';
@@ -39,30 +40,28 @@ class _LoginView2State extends State<LoginView2> {
     });
 
     try {
-      // Trigger the Google Authentication flow
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
       if (googleUser == null) {
         setState(() {
           isLoading = false;
         });
-        return; // User canceled the login
+        return;
       }
 
-      // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      // Create a new credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Sign in to Firebase with the Google user credentials
       await FirebaseAuth.instance.signInWithCredential(credential);
 
-      // Navigate to the HomeScreen if successful
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -107,16 +106,14 @@ class _LoginView2State extends State<LoginView2> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-            
-                // Social Buttons with animation
                 AnimatedOpacity(
                   opacity: _showButtons ? 1.0 : 0.0,
                   duration: Duration(milliseconds: 500),
                   child: Column(
                     children: [
                       ElevatedButton.icon(
-                        icon:
-                            Image.asset('assets/images/google12.png', height: 20),
+                        icon: Image.asset('assets/images/google12.png',
+                            height: 20),
                         label: Text('Continue with Google'),
                         onPressed: loginWithGoogle,
                         style: ElevatedButton.styleFrom(
@@ -134,7 +131,6 @@ class _LoginView2State extends State<LoginView2> {
                   ),
                 ),
                 const SizedBox(height: 20),
-            
                 Row(
                   children: [
                     Expanded(child: Divider()),
@@ -146,7 +142,6 @@ class _LoginView2State extends State<LoginView2> {
                   ],
                 ),
                 const SizedBox(height: 20),
-            
                 AnimatedSwitcher(
                   duration: Duration(milliseconds: 300),
                   child: isLoading
