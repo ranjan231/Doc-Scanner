@@ -6,8 +6,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share/share.dart';
 
 class PDFCompressonScreen extends StatefulWidget {
   @override
@@ -162,10 +162,10 @@ class _PDFCompressonScreenState extends State<PDFCompressonScreen> {
     });
 
     // Simulate compression process
-    List<XFile> compressedFiles = [];
+    List<String> compressedFiles = [];
     for (var file in selectedFiles) {
       print('Compressing ${file['title']} with level $compressionLevel...');
-      compressedFiles.add(XFile(file['path']));
+      compressedFiles.add((file['path']));
     }
 
     setState(() {
@@ -177,7 +177,7 @@ class _PDFCompressonScreenState extends State<PDFCompressonScreen> {
     );
 
     if (compressedFiles.isNotEmpty) {
-      await Share.shareXFiles(
+      await Share.shareFiles(
         compressedFiles,
         subject: 'Compressed PDF Documents',
         text: 'Here are the compressed PDF documents.',
