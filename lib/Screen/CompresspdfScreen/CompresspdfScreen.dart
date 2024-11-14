@@ -127,12 +127,6 @@ class _PDFCompressonScreenState extends State<PDFCompressonScreen>
               ),
               child: const Text('Share'),
             ),
-            // TextButton(
-            // onPressed: () {
-            //   Navigator.pop(context, 1.0 - compressionLevel);
-            // },
-            //   child: Text('Share', style: TextStyle(color: Colors.blue)),
-            // ),
           ],
         );
       },
