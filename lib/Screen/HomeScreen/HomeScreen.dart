@@ -1,9 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
 import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+import 'package:open_file/open_file.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../Controller/Controller.dart';
 
@@ -25,10 +29,24 @@ class _HomeScreenState extends State<HomeScreen> {
       isGalleryImport: false,
     );
     manager.documentScanner = DocumentScanner(options: manager.options);
-   
   }
 
- Future<void> _startScan() async {
+  Stream<QuerySnapshot> getUserDocuments() async* {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userEmail = prefs.getString('userEmail');
+
+    if (userEmail != null) {
+      yield* FirebaseFirestore.instance
+          .collection('documents')
+          .where('userEmail', isEqualTo: userEmail)
+          .orderBy('timestamp', descending: true)
+          .snapshots();
+    } else {
+      print('User email not found in SharedPreferences.');
+    }
+  }
+
+  Future<void> _startScan() async {
     setState(() => manager.isScanning = true);
     try {
       final result = await manager.documentScanner.scanDocument();
@@ -36,18 +54,21 @@ class _HomeScreenState extends State<HomeScreen> {
         manager.scanResult = result;
         if (manager.scanResult!.images.isNotEmpty) {
           manager.scannedImages.addAll(manager.scanResult!.images);
-          manager.selectedImages.addAll(List.generate(manager.scanResult!.images.length, (_) => false));
+          manager.selectedImages.addAll(
+              List.generate(manager.scanResult!.images.length, (_) => false));
         }
         manager.isScanning = false;
       });
-       if (manager.scannedImages.isNotEmpty) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ScannerScreen(scannedImages: manager.scannedImages),
-          fullscreenDialog: true, // Sets the screen to open in fullscreen mode
-        ),
-      );
-    }
+      if (manager.scannedImages.isNotEmpty) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) =>
+                ScannerScreen(scannedImages: manager.scannedImages),
+            fullscreenDialog:
+                true, 
+          ),
+        );
+      }
     } on PlatformException catch (e) {
       setState(() => manager.isScanning = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,7 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
         const Center(
             child: Text('Rewards Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
-        // ScannerScreen(),
         SizedBox(),
 
         const Center(
@@ -118,9 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // color: Colors.blue,
                 ),
                 onPressed: () {
-                  // _startScan();
                   _startScan();
-                  
 
                   _onItemTapped(2);
                 },
@@ -153,11 +171,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onItemTapped(int index) {
     if (index != 2) {
-      // Skip changing _selectedIndex for the scan button
+      
       setState(() {
         _selectedIndex = index;
       });
     }
+  }
+
+  void _openDocument(String filePath) async {
+    final result = await OpenFile.open(filePath);
+    print(result);
   }
 
   Widget _buildHomeScreen() {
@@ -221,15 +244,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            itemCount: 10,
-            itemBuilder: (context, index) {
-              return ListTile(
-                leading:
-                    Icon(Icons.insert_drive_file, color: Colors.grey, size: 40),
-                title: Text("Document Name $index"),
-                subtitle: Text("Accessed: 05-22-2023 20:45"),
-                trailing: Icon(Icons.check_box_outline_blank),
+          child: StreamBuilder<QuerySnapshot>(
+            stream: getUserDocuments(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.data!.docs.isEmpty) {
+                return Center(child: Text('No recent documents.'));
+              }
+
+              
+              return ListView(
+                children: snapshot.data!.docs.map((document) {
+                  Map<String, dynamic> data =
+                      document.data() as Map<String, dynamic>;
+                  return ListTile(
+                    leading: Icon(Icons.insert_drive_file,
+                        color: Colors.grey, size: 40),
+                    title: Text(data['fileType'] ?? 'Unknown Document'),
+                    subtitle: Text(data['timestamp']?.toDate().toString() ??
+                        'No date available'),
+
+                    trailing: Icon(Icons.more_vert),
+                    onTap: () =>
+                        _openDocument(data['filePath']), 
+                  );
+                }).toList(),
               );
             },
           ),
@@ -255,14 +296,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCardItem(IconData iconData, String label, Color color) {
     return GestureDetector(
       onTap: () {
-         if(label=='Compress PDF'){
+        if (label == 'Compress PDF') {
           Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => PDFCompressonScreen(),
-          fullscreenDialog: true, // Sets the screen to open in fullscreen mode
-        ),
-      );
-
+            MaterialPageRoute(
+              builder: (context) => PDFCompressonScreen(),
+              fullscreenDialog: true,
+            ),
+          );
         }
         print('$label clicked');
       },
