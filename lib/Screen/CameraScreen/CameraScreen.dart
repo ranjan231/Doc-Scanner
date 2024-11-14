@@ -1,4 +1,7 @@
+import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterpracticeversion22/Controller/Controller.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
@@ -7,13 +10,14 @@ import 'dart:io';
 import 'package:share/share.dart'; // For sharing files
 import 'package:pdf/pdf.dart'; // For generating PDFs
 import 'package:pdf/widgets.dart' as pw; // PDF package for Flutter
-import 'package:path_provider/path_provider.dart'; // For getting valid file paths
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // For getting valid file paths
 
 class ScannerScreen extends StatefulWidget {
   final List<String> scannedImages;
 
   ScannerScreen({required this.scannedImages});
-  
+
   @override
   _ScannerScreenState createState() => _ScannerScreenState();
 }
@@ -32,7 +36,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
       isGalleryImport: false,
     );
     manager.documentScanner = DocumentScanner(options: manager.options);
-    manager.selectedImages = List.generate(manager.scannedImages.length, (_) => false); // Initialize selection state
+    manager.selectedImages = List.generate(manager.scannedImages.length,
+        (_) => false); // Initialize selection state
   }
 
   @override
@@ -49,7 +54,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
         manager.scanResult = result;
         if (manager.scanResult!.images.isNotEmpty) {
           manager.scannedImages.addAll(manager.scanResult!.images);
-          manager.selectedImages.addAll(List.generate(manager.scanResult!.images.length, (_) => false)); // Initialize selection state for new images
+          manager.selectedImages.addAll(List.generate(
+              manager.scanResult!.images.length,
+              (_) => false)); 
         }
         manager.isScanning = false;
       });
@@ -67,112 +74,120 @@ class _ScannerScreenState extends State<ScannerScreen> {
     });
   }
 
-  
   Future<void> _showShareOptions() {
-  TextEditingController fileNameController = TextEditingController();
-  
-  return showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text("Share as..."),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: fileNameController,
-              decoration: InputDecoration(hintText: "Enter file name"),
+    TextEditingController fileNameController = TextEditingController();
+
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Share as..."),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10),
+              Text("Select the format to share."),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                String fileName = fileNameController.text.isEmpty
+                    ? 'file_${Random().nextInt(1000000)}' 
+                    : fileNameController.text;
+                _shareFileAsPDF(fileName);
+                Navigator.of(context).pop();
+              },
+              child: Text("PDF"),
             ),
-            SizedBox(height: 10),
-            Text("Select the format to share."),
+            TextButton(
+              onPressed: () {
+                
+                _shareFileAsPNG();
+                Navigator.of(context).pop();
+              },
+              child: Text("PNG"),
+            ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              String fileName = fileNameController.text.isEmpty
-                  ? 'output' // Default name if no name is provided
-                  : fileNameController.text;
-              _shareFileAsPDF(fileName);
-              Navigator.of(context).pop();
-            },
-            child: Text("PDF"),
-          ),
-          TextButton(
-            onPressed: () {
-              // String fileName = fileNameController.text.isEmpty
-              //     ? 'output' // Default name if no name is provided
-              //     : fileNameController.text;
-              _shareFileAsPNG();
-              Navigator.of(context).pop();
-            },
-            child: Text("PNG"),
-          ),
-        ],
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-  Future<void> _shareFileAsPDF(String fileName) async {
-  List<String> selectedPaths = _getSelectedImages();
-  if (selectedPaths.isNotEmpty) {
-    // Generate PDF from selected images
-    final pdf = pw.Document();
-    for (String imagePath in selectedPaths) {
-      final imgFile = File(imagePath);
-      final imgBytes = await imgFile.readAsBytes();
-      final img = pw.MemoryImage(imgBytes);
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  // Assuming user is authenticated and you have their UID
+  final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-      pdf.addPage(
-        pw.Page(
-          build: (pw.Context context) {
-            return pw.Image(img); 
-          },
-        ),
+  Future<void> _saveDocumentToFirestore(
+      String filePath, String fileType) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userEmail = prefs.getString('userEmail');
+    try {
+      await firestore.collection('documents').add({
+        'filePath': filePath,
+        'fileType': fileType,
+        'timestamp': FieldValue.serverTimestamp(),
+        'userEmail': userEmail,
+      });
+      print('Document saved to Firestore successfully.');
+    } catch (e) {
+      print('Error saving document to Firestore: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save document to Firestore')),
       );
     }
-
-    final directory = await getApplicationDocumentsDirectory();
-    final outputFile = File('${directory.path}/$fileName.pdf'); // Use the custom file name
-
-    // Save the generated PDF to the file
-    await outputFile.writeAsBytes(await pdf.save());
-
-    // Share the PDF file
-    Share.shareFiles([outputFile.path], text: 'Here is the document as PDF!');
-
-    // Clear scanned images after sharing
-    // setState(() {
-    //   print('chk before length ${manager.scannedImages.length}');
-    //   manager.scannedImages.clear();
-    //   print('chk after length ${manager.scannedImages.length}');
-
-    // });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No images selected to share.')),
-    );
   }
-}
 
-void _shareFileAsPNG() {
-  List<String> selectedPaths = _getSelectedImages();
-  if (selectedPaths.isNotEmpty) {
-    // Share the images directly as PNG with the custom file name
-    Share.shareFiles(selectedPaths, text: 'Here are the scanned images as PNG!');
+  Future<void> _shareFileAsPDF(String fileName) async {
+    List<String> selectedPaths = _getSelectedImages();
+    if (selectedPaths.isNotEmpty) {
+      final pdf = pw.Document();
+      for (String imagePath in selectedPaths) {
+        final imgFile = File(imagePath);
+        final imgBytes = await imgFile.readAsBytes();
+        final img = pw.MemoryImage(imgBytes);
 
-    // Clear scanned images after sharing
-    setState(() {
-      manager.scannedImages.clear();
-    });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No images selected to share.')),
-    );
+        pdf.addPage(
+          pw.Page(
+            build: (pw.Context context) {
+              return pw.Image(img);
+            },
+          ),
+        );
+      }
+
+      final directory = await getApplicationDocumentsDirectory();
+      final outputFile = File('${directory.path}/$fileName.pdf');
+      await outputFile.writeAsBytes(await pdf.save());
+
+      // Share the PDF file
+      Share.shareFiles([outputFile.path], text: 'Here is the document as PDF!');
+
+      // Save document to Firestore
+      await _saveDocumentToFirestore(outputFile.path, 'PDF');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No images selected to share.')),
+      );
+    }
   }
-}
 
+  void _shareFileAsPNG() {
+    List<String> selectedPaths = _getSelectedImages();
+    if (selectedPaths.isNotEmpty) {
+      Share.shareFiles(selectedPaths,
+          text: 'Here are the scanned images as PNG!');
+
+      // Save each selected image to Firestore as PNG
+      for (String imagePath in selectedPaths) {
+        _saveDocumentToFirestore(imagePath, 'PNG');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No images selected to share.')),
+      );
+    }
+  }
 
   List<String> _getSelectedImages() {
     List<String> selectedPaths = [];
@@ -201,7 +216,8 @@ void _shareFileAsPNG() {
         return GestureDetector(
           onTap: () => _toggleImageSelection(index), // Toggle selection on tap
           child: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             margin: EdgeInsets.all(8),
             elevation: 5,
             child: Stack(
@@ -211,7 +227,7 @@ void _shareFileAsPNG() {
                   borderRadius: BorderRadius.circular(10),
                   child: Image.file(File(imagePath), fit: BoxFit.cover),
                 ),
-                if (manager.selectedImages[index]) 
+                if (manager.selectedImages[index])
                   Positioned(
                     top: 5,
                     right: 5,
@@ -231,13 +247,13 @@ void _shareFileAsPNG() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: AppBar(
         actions: [
-           ElevatedButton(
-          onPressed: _showShareOptions, // Show the dialog to choose PDF or PNG
-          child: Icon(Icons.share),
-        ),
+          ElevatedButton(
+            onPressed:
+                _showShareOptions, // Show the dialog to choose PDF or PNG
+            child: Icon(Icons.share),
+          ),
         ],
         leading: IconButton(
           icon: Icon(Icons.close),
@@ -245,8 +261,6 @@ void _shareFileAsPNG() {
             Navigator.of(context).pop(); // Pop back to HomeScreen
           },
         ),
-        
-        
       ),
       body: Column(
         children: [
@@ -259,7 +273,6 @@ void _shareFileAsPNG() {
         child: Icon(Icons.camera),
         backgroundColor: Colors.blue,
       ),
-     
     );
   }
 }
