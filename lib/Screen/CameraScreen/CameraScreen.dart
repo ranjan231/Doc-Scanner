@@ -1,3 +1,4 @@
+
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -67,119 +68,95 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   void _toggleImageSelection(int index) {
-  setState(() {
-    manager.selectedImages[index] = !manager.selectedImages[index];
-  });
-}
-  // void _toggleImageSelection(int index) {
-  //   setState(() {
-  //     manager.selectedImages[index] = !manager.selectedImages[index];
-  //   });
-  // }
+    setState(() {
+      manager.selectedImages[index] = !manager.selectedImages[index];
+    });
+  }
 
-Future<void> _showShareOptions() async {
-  TextEditingController fileNameController = TextEditingController();
-  String errorMessage = '';
+  Future<void> _showShareOptions() async {
+    TextEditingController fileNameController = TextEditingController();
+    String errorMessage = '';
 
-  await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Share as...",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 10),
-              TextField(
-                controller: fileNameController,
-                decoration: InputDecoration(
-                  hintText: "Enter file name",
-                  errorText: errorMessage.isNotEmpty ? errorMessage : null,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "Select the format to share.",
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-              ),
-              SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text("Share as..."),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton.icon(
-                    icon: Icon(Icons.picture_as_pdf),
-                    label: Text("PDF"),
-                    onPressed: () async {
-                      await _handleFileSharing(fileNameController, errorMessage, "PDF");
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  TextField(
+                    controller: fileNameController,
+                    decoration: InputDecoration(
+                      hintText: "Enter file name",
+                      errorText: errorMessage.isNotEmpty ? errorMessage : null,
                     ),
                   ),
-                  ElevatedButton.icon(
-                    icon: Icon(Icons.image),
-                    label: Text("PNG"),
-                    onPressed: () async {
-                      await _handleFileSharing(fileNameController, errorMessage, "PNG");
-                    },
-                    style: ElevatedButton.styleFrom(
-                     foregroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
+                  SizedBox(height: 10),
+                  Text("Select the format to share."),
                 ],
               ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    String fileName = fileNameController.text.isEmpty
+                        ? 'file_${Random().nextInt(1000000)}'
+                        : fileNameController.text;
+                    final directory = await getApplicationDocumentsDirectory();
+                    final outputFile = File('${directory.path}/$fileName.pdf');
 
-Future<void> _handleFileSharing(TextEditingController fileNameController, String errorMessage, String fileType) async {
-  String fileName = fileNameController.text.isEmpty
-      ? 'file_${Random().nextInt(1000000)}'
-      : fileNameController.text;
+                    bool isDuplicate =
+                        await _checkForDuplicateFileName(outputFile.path);
 
-  final directory = await getApplicationDocumentsDirectory();
-  final outputFile = File('${directory.path}/$fileName.${fileType.toLowerCase()}');
-  bool isDuplicate = await _checkForDuplicateFileName(outputFile.path);
+                    if (isDuplicate) {
+                      setState(() {
+                        errorMessage = 'A file with this name already exists.';
+                      });
+                    } else {
+                      await _shareFileAsPDF(fileName);
+                      Navigator.of(context)
+                          .pop(); 
+                    }
+                  },
+                  child: Text("PDF"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    String fileName = fileNameController.text.isEmpty
+                        ? 'file_${Random().nextInt(1000000)}'
+                        : fileNameController.text;
+                    List<String> selectedPaths = _getSelectedImages();
+                  bool isDuplicate = false;
+                  for (String imagePath in selectedPaths) {
+                    if (await _checkForDuplicateFileName(imagePath)) {
+                      isDuplicate = true;
+                      break;
+                    }
+                  }
 
-  if (isDuplicate) {
-    setState(() {
-      errorMessage = 'A file with this name already exists.';
-    });
-  } else {
-    if (fileType == "PDF") {
-      await _shareFileAsPDF(fileName);
-    } else {
-      _shareFileAsPNG();
-    }
-    Navigator.of(context).pop();
+                    if (isDuplicate) {
+                      setState(() {
+                        errorMessage = 'A file with this name already exists.';
+                      });
+                    } else {
+                      _shareFileAsPNG();
+                      Navigator.of(context)
+                          .pop(); 
+                    }
+                  },
+                  child: Text("PNG"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
-}
 
-
-
+   
   Future<bool> _checkForDuplicateFileName(String filePath) async {
     String? userEmail;
     User? user = FirebaseAuth.instance.currentUser;
@@ -329,68 +306,49 @@ Future<void> _handleFileSharing(TextEditingController fileNameController, String
   }
 
   Widget _buildScanResult() {
-  if (manager.scannedImages.isEmpty) {
-    return Center(
-      child: Text(
-        'No scan result yet.',
-        style: TextStyle(fontSize: 16, color: Colors.grey),
-      ),
-    );
-  }
+    if (manager.scannedImages.isEmpty) {
+      return Center(child: Text('No scan result yet.'));
+    }
 
-  return GridView.builder(
-    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-    ),
-    itemCount: manager.scannedImages.length,
-    itemBuilder: (context, index) {
-      final imagePath = manager.scannedImages[index];
-      return GestureDetector(
-        onTap: () => _toggleImageSelection(index),
-        child: Stack(
-          children: [
-            
-            Card(
-              
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              margin: EdgeInsets.all(8),
-              elevation: 5,
-              child: ClipRRect(
-                
-                borderRadius: BorderRadius.circular(15),
-                child: Image.file(
-                  File(imagePath),
-                  fit: BoxFit.cover,
+    return GridView.builder(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: manager.scannedImages.length,
+      itemBuilder: (context, index) {
+        final imagePath = manager.scannedImages[index];
+        return GestureDetector(
+          onTap: () => _toggleImageSelection(index),
+          child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: EdgeInsets.all(8),
+            elevation: 5,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(File(imagePath), fit: BoxFit.cover),
                 ),
-              ),
-            ),
-            if (manager.selectedImages[index])
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black45,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Center(
+                if (manager.selectedImages[index])
+                  Positioned(
+                    top: 5,
+                    right: 5,
                     child: Icon(
                       Icons.check_circle,
-                      color: Colors.greenAccent,
-                      size: 40,
+                      color: Colors.green,
                     ),
                   ),
-                ),
-              ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -421,4 +379,4 @@ Future<void> _handleFileSharing(TextEditingController fileNameController, String
       ),
     );
   }
-}
+} 
