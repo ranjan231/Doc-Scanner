@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
@@ -32,8 +33,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Stream<QuerySnapshot> getUserDocuments() async* {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userEmail = prefs.getString('userEmail');
+    User? user = FirebaseAuth.instance.currentUser;
+
+    String? userEmail;
+
+    if (user != null &&
+        user.providerData.any((info) => info.providerId == 'google.com')) {
+      userEmail = user.email;
+    } else {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userEmail = prefs.getString('userEmail');
+    }
 
     if (userEmail != null) {
       yield* FirebaseFirestore.instance
@@ -42,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .orderBy('timestamp', descending: true)
           .snapshots();
     } else {
-      print('User email not found in SharedPreferences.');
+      print('User email not found.');
     }
   }
 
@@ -64,8 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(
             builder: (context) =>
                 ScannerScreen(scannedImages: manager.scannedImages),
-            fullscreenDialog:
-                true, 
+            fullscreenDialog: true,
           ),
         );
       }
@@ -83,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text('Rewards Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
         SizedBox(),
-
         const Center(
             child: Text('Tools Screen',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
@@ -171,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onItemTapped(int index) {
     if (index != 2) {
-      
       setState(() {
         _selectedIndex = index;
       });
@@ -254,7 +261,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 return Center(child: Text('No recent documents.'));
               }
 
-              
               return ListView(
                 children: snapshot.data!.docs.map((document) {
                   Map<String, dynamic> data =
@@ -265,10 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: Text(data['fileType'] ?? 'Unknown Document'),
                     subtitle: Text(data['timestamp']?.toDate().toString() ??
                         'No date available'),
-
                     trailing: Icon(Icons.more_vert),
-                    onTap: () =>
-                        _openDocument(data['filePath']), 
+                    onTap: () => _openDocument(data['filePath']),
                   );
                 }).toList(),
               );
