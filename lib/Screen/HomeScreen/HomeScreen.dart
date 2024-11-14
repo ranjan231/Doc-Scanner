@@ -7,6 +7,7 @@ import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScr
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:open_file/open_file.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,10 +20,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   var manager = Controller();
+  String? userEmail;
   int _selectedIndex = 0;
   @override
   void initState() {
     super.initState();
+    _initializeUserEmail();
     manager.options = DocumentScannerOptions(
       pageLimit: 1,
       documentFormat: DocumentFormat.jpeg,
@@ -31,6 +34,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     manager.documentScanner = DocumentScanner(options: manager.options);
   }
+
+  Future<void> _initializeUserEmail() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null && user.providerData.any((info) => info.providerId == 'google.com')) {
+    userEmail = user.email;
+  } else {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    userEmail = prefs.getString('userEmail');
+  }
+}
 
   Stream<QuerySnapshot> getUserDocuments() async* {
     User? user = FirebaseAuth.instance.currentUser;
@@ -185,10 +198,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openDocument(String filePath) async {
-    final result = await OpenFile.open(filePath);
-    print(result);
+  Future<void> requestStoragePermission() async {
+  if (await Permission.manageExternalStorage.request().isGranted) {
+    // Permission granted
+  } else {
+    // Show a dialog or snackbar to inform the user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Storage permission is required to open files.')),
+    );
   }
+}
+
+  void _openDocument(String filePath) async {
+  await requestStoragePermission(); // Ensure permissions are granted
+  final result = await OpenFile.open(filePath);
+  if (result.type != ResultType.done) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not open document: ${result.message}')),
+    );
+  }
+}
+
 
   Widget _buildHomeScreen() {
     return Column(
