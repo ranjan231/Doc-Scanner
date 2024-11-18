@@ -6,6 +6,7 @@ import 'package:flutterpracticeversion22/Controller/HomeController.dart';
 import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
 import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
+import 'package:flutterpracticeversion22/Screen/pdftowordScreen/pdftowordScreen.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:image_picker/image_picker.dart';
@@ -345,8 +346,14 @@ class _HomeScreenState extends State<HomeScreen> {
         } else if (label == 'Image to Text') {
           // imageToText(context);
           homeController.selectImage(context);
+        } else if (label == 'PDF to Word') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => PdfToWordConverter(),
+              fullscreenDialog: true,
+            ),
+          );
         }
-        print('$label clicked');
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
