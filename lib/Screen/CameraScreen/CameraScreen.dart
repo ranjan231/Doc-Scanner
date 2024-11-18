@@ -1,4 +1,3 @@
-
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -116,8 +115,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       });
                     } else {
                       await _shareFileAsPDF(fileName);
-                      Navigator.of(context)
-                          .pop(); 
+                      Navigator.of(context).pop();
                     }
                   },
                   child: Text("PDF"),
@@ -128,13 +126,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         ? 'file_${Random().nextInt(1000000)}'
                         : fileNameController.text;
                     List<String> selectedPaths = _getSelectedImages();
-                  bool isDuplicate = false;
-                  for (String imagePath in selectedPaths) {
-                    if (await _checkForDuplicateFileName(imagePath)) {
-                      isDuplicate = true;
-                      break;
+                    bool isDuplicate = false;
+                    for (String imagePath in selectedPaths) {
+                      if (await _checkForDuplicateFileName(imagePath)) {
+                        isDuplicate = true;
+                        break;
+                      }
                     }
-                  }
 
                     if (isDuplicate) {
                       setState(() {
@@ -142,8 +140,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       });
                     } else {
                       _shareFileAsPNG();
-                      Navigator.of(context)
-                          .pop(); 
+                      Navigator.of(context).pop();
                     }
                   },
                   child: Text("PNG"),
@@ -156,7 +153,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
-   
   Future<bool> _checkForDuplicateFileName(String filePath) async {
     String? userEmail;
     User? user = FirebaseAuth.instance.currentUser;
@@ -186,8 +182,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       print('Documents found: ${existingDocs.docs.length}');
 
-      return existingDocs.docs
-          .isNotEmpty; 
+      return existingDocs.docs.isNotEmpty;
     } catch (e) {
       print('Error checking for duplicate: $e');
       return false;
@@ -379,4 +374,4 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ),
     );
   }
-} 
+}
