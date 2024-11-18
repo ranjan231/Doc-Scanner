@@ -14,8 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ScannerScreen extends StatefulWidget {
   final List<String> scannedImages;
+ 
 
-  ScannerScreen({required this.scannedImages});
+  ScannerScreen({required this.scannedImages, });
 
   @override
   _ScannerScreenState createState() => _ScannerScreenState();
@@ -52,6 +53,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       setState(() {
         manager.scanResult = result;
         if (manager.scanResult!.images.isNotEmpty) {
+          print('chk image ${manager.scannedImages}');
           manager.scannedImages.addAll(manager.scanResult!.images);
           manager.selectedImages.addAll(
               List.generate(manager.scanResult!.images.length, (_) => false));
@@ -139,7 +141,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         errorMessage = 'A file with this name already exists.';
                       });
                     } else {
-                      _shareFileAsPNG();
+                      _shareFileAsPNG(fileName);
                       Navigator.of(context).pop();
                     }
                   },
@@ -193,7 +195,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> _saveDocumentToFirestore(
-      User? user, String filePath, String fileType) async {
+      User? user, String filePath, String fileType, fileName) async {
     String? userEmail;
 
     if (user != null &&
@@ -229,6 +231,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
           'fileType': fileType,
           'timestamp': FieldValue.serverTimestamp(),
           'userEmail': userEmail,
+          'label':fileName,
+          'image':widget.scannedImages.first,
+          
         });
         print('Document saved to Firestore successfully.');
       }
@@ -265,7 +270,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       Share.shareFiles([outputFile.path], text: 'Here is the document as PDF!');
 
-      await _saveDocumentToFirestore(user, outputFile.path, 'PDF');
+      await _saveDocumentToFirestore(user, outputFile.path, 'PDF',fileName);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No images selected to share.')),
@@ -273,7 +278,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  void _shareFileAsPNG() {
+  void _shareFileAsPNG(String fileName) {
     User? user = FirebaseAuth.instance.currentUser;
     List<String> selectedPaths = _getSelectedImages();
     if (selectedPaths.isNotEmpty) {
@@ -281,7 +286,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           text: 'Here are the scanned images as PNG!');
 
       for (String imagePath in selectedPaths) {
-        _saveDocumentToFirestore(user, imagePath, 'PNG');
+        _saveDocumentToFirestore(user, imagePath, 'PNG',fileName);
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
