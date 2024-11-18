@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -5,15 +7,17 @@ import 'package:flutter/services.dart';
 import 'package:flutterpracticeversion22/Controller/HomeController.dart';
 import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
 import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScreen.dart';
+import 'package:flutterpracticeversion22/Screen/DocScreen/DocsScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
 import 'package:flutterpracticeversion22/Screen/pdftowordScreen/pdftowordScreen.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
+
+
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../Controller/Controller.dart';
 
@@ -81,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final result = await manager.documentScanner.scanDocument();
       setState(() {
         manager.scanResult = result;
+
         if (manager.scanResult!.images.isNotEmpty) {
           manager.scannedImages.addAll(manager.scanResult!.images);
           manager.selectedImages.addAll(
@@ -91,8 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (manager.scannedImages.isNotEmpty) {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) =>
-                ScannerScreen(scannedImages: manager.scannedImages),
+            builder: (context) => ScannerScreen(
+              scannedImages: manager.scannedImages,
+            ),
             fullscreenDialog: true,
           ),
         );
@@ -107,9 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> get _widgetOptions => <Widget>[
         _buildHomeScreen(),
-        const Center(
-            child: Text('Rewards Screen',
-                style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold))),
+        DocsScreen(),
         SizedBox(),
         const Center(
             child: Text('Tools Screen',
@@ -301,10 +305,50 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: snapshot.data!.docs.map((document) {
                   Map<String, dynamic> data =
                       document.data() as Map<String, dynamic>;
+                  print('indera: ${data['image']}');
                   return ListTile(
-                    leading: Icon(Icons.insert_drive_file,
-                        color: Colors.grey, size: 40),
-                    title: Text(data['fileType'] ?? 'Unknown Document'),
+                    leading: data['image'] != null && data['image'].isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: data['image'].startsWith('http')
+                                ? Image.network(
+                                    data['image'],
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      print('Error loading image: $error');
+                                      return Icon(Icons.broken_image,
+                                          color: Colors.red, size: 40);
+                                    },
+                                  )
+                                : Image.file(
+                                    File(data['image']),
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.contain,
+                                  ),
+                          )
+                        : Icon(Icons.insert_drive_file,
+                            color: Colors.grey, size: 40),
+
+                    title: Text(data['label'] ?? 'Unknown Document'),
                     subtitle: Text(data['timestamp']?.toDate().toString() ??
                         'No date available'),
                     trailing: Icon(Icons.more_vert),
