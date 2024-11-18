@@ -2,10 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutterpracticeversion22/Controller/HomeController.dart';
 import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
 import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   var manager = Controller();
+  final HomeController homeController = HomeController();
   String? userEmail;
   int _selectedIndex = 0;
   @override
@@ -36,14 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initializeUserEmail() async {
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user != null && user.providerData.any((info) => info.providerId == 'google.com')) {
-    userEmail = user.email;
-  } else {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    userEmail = prefs.getString('userEmail');
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null &&
+        user.providerData.any((info) => info.providerId == 'google.com')) {
+      userEmail = user.email;
+    } else {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userEmail = prefs.getString('userEmail');
+    }
   }
-}
 
   Stream<QuerySnapshot> getUserDocuments() async* {
     User? user = FirebaseAuth.instance.currentUser;
@@ -199,26 +204,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> requestStoragePermission() async {
-  if (await Permission.manageExternalStorage.request().isGranted) {
-    // Permission granted
-  } else {
-    // Show a dialog or snackbar to inform the user
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Storage permission is required to open files.')),
-    );
+    if (await Permission.manageExternalStorage.request().isGranted) {
+      // Permission granted
+    } else {
+      // Show a dialog or snackbar to inform the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Storage permission is required to open files.')),
+      );
+    }
   }
-}
 
   void _openDocument(String filePath) async {
-  await requestStoragePermission(); // Ensure permissions are granted
-  final result = await OpenFile.open(filePath);
-  if (result.type != ResultType.done) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Could not open document: ${result.message}')),
-    );
+    await requestStoragePermission(); // Ensure permissions are granted
+    final result = await OpenFile.open(filePath);
+    if (result.type != ResultType.done) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open document: ${result.message}')),
+      );
+    }
   }
-}
-
 
   Widget _buildHomeScreen() {
     return Column(
@@ -337,6 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
               fullscreenDialog: true,
             ),
           );
+        } else if (label == 'Image to Text') {
+          // imageToText(context);
+          homeController.selectImage(context);
         }
         print('$label clicked');
       },
