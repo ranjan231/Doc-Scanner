@@ -1,7 +1,7 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,9 +39,9 @@ class DocsScreenState extends State<DocsScreen> {
   }
 
   void _openDocument(String filePath) async {
-    await requestStoragePermission(); // Ensure permissions are granted
+    await requestStoragePermission();
     final result = await OpenFile.open(filePath);
-  
+
     if (result.type != ResultType.done) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not open document: ${result.message}')),
@@ -51,9 +51,7 @@ class DocsScreenState extends State<DocsScreen> {
 
   Future<void> requestStoragePermission() async {
     if (await Permission.manageExternalStorage.request().isGranted) {
-      // Permission granted
     } else {
-      // Show a dialog or snackbar to inform the user
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('Storage permission is required to open files.')),
@@ -62,80 +60,83 @@ class DocsScreenState extends State<DocsScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Column(
-      crossAxisAlignment: CrossAxisAlignment.start, // Align children to the start
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: TextField(
-            decoration: InputDecoration(
-              prefixIcon: Icon(Icons.search, color: Colors.grey),
-              hintText: "Search",
-              filled: true,
-              fillColor: Colors.grey[200],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25.0),
-                borderSide: BorderSide.none,
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                hintText: "Search",
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25.0),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-        ),
-        SizedBox(height: 10,),
-        
-        StreamBuilder<QuerySnapshot>(
-          stream: getUserDocuments(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('Loading documents count...'),
-              );
-            }
-
-            final documentCount = snapshot.data!.docs.length;
-
-            return Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'All($documentCount)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            );
-          },
-        ),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
+          SizedBox(
+            height: 10,
+          ),
+          StreamBuilder<QuerySnapshot>(
             stream: getUserDocuments(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.data!.docs.isEmpty) {
-                return Center(child: Text('No recent documents.'));
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Text('Loading documents count...'),
+                );
               }
 
-              return ListView(
-                children: snapshot.data!.docs.map((document) {
-                  Map<String, dynamic> data =
-                      document.data() as Map<String, dynamic>;
-                  return ListTile(
-                    leading: Icon(Icons.insert_drive_file,
-                        color: Colors.grey, size: 40),
-                    title: Text(data['label'] ?? 'Unknown Document'),
-                    trailing: Icon(Icons.more_vert),
-                    onTap: () => _openDocument(data['filePath']),
-                  );
-                }).toList(),
+              final documentCount = snapshot.data!.docs.length;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'All($documentCount)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               );
             },
           ),
-        ),
-      ],
-    ),
-  );
-}
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: getUserDocuments(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No recent documents.'));
+                }
 
-
+                return ListView(
+                  children: snapshot.data!.docs.map((document) {
+                    Map<String, dynamic> data =
+                        document.data() as Map<String, dynamic>;
+                    return ListTile(
+                      leading: Image.file(
+                        File(data['image']),
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                      title: Text(data['label'] ?? 'Unknown Document'),
+                      trailing: Icon(Icons.more_vert),
+                      onTap: () => _openDocument(data['filePath']),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
