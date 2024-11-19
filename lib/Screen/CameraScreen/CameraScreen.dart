@@ -14,9 +14,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ScannerScreen extends StatefulWidget {
   final List<String> scannedImages;
- 
 
-  ScannerScreen({required this.scannedImages, });
+  ScannerScreen({
+    required this.scannedImages,
+  });
 
   @override
   _ScannerScreenState createState() => _ScannerScreenState();
@@ -231,9 +232,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
           'fileType': fileType,
           'timestamp': FieldValue.serverTimestamp(),
           'userEmail': userEmail,
-          'label':fileName,
-          'image':widget.scannedImages.first,
-          
+          'label': fileName,
+          'image': widget.scannedImages.first,
         });
         print('Document saved to Firestore successfully.');
       }
@@ -270,7 +270,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       Share.shareFiles([outputFile.path], text: 'Here is the document as PDF!');
 
-      await _saveDocumentToFirestore(user, outputFile.path, 'PDF',fileName);
+      await _saveDocumentToFirestore(user, outputFile.path, 'PDF', fileName);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No images selected to share.')),
@@ -278,16 +278,25 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  void _shareFileAsPNG(String fileName) {
+  void _shareFileAsPNG(String fileName) async {
     User? user = FirebaseAuth.instance.currentUser;
     List<String> selectedPaths = _getSelectedImages();
-    if (selectedPaths.isNotEmpty) {
-      Share.shareFiles(selectedPaths,
-          text: 'Here are the scanned images as PNG!');
 
-      for (String imagePath in selectedPaths) {
-        _saveDocumentToFirestore(user, imagePath, 'PNG',fileName);
+    if (selectedPaths.isNotEmpty) {
+      final directory = await getApplicationDocumentsDirectory();
+      List<String> updatedPaths = [];
+
+      for (int i = 0; i < selectedPaths.length; i++) {
+        final oldFile = File(selectedPaths[i]);
+        final newFilePath = '${directory.path}/$fileName.png';
+        final newFile = await oldFile.copy(newFilePath);
+        updatedPaths.add(newFile.path);
+
+        await _saveDocumentToFirestore(user, newFile.path, 'PNG', fileName);
       }
+
+      // Share the updated PNG files
+      Share.shareFiles(updatedPaths);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No images selected to share.')),

@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Developed by Ranjan',
+      title: 'DOC SCANNER',
       navigatorKey: Constant.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
