@@ -70,7 +70,7 @@ class DefaultFirebaseOptions {
     // iosClientId: '334189646378-cue44ut27949a0mk490tnmvjfpoipu5d.apps.googleusercontent.com',
     iosBundleId: 'com.ringIt.ios',
   );
-
+ 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: '',
     appId: '',

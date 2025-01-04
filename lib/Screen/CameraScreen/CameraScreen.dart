@@ -4,8 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterpracticeversion22/Controller/Controller.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:share/share.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -14,9 +16,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ScannerScreen extends StatefulWidget {
   final List<String> scannedImages;
+  String? gallery;
 
   ScannerScreen({
     required this.scannedImages,
+    this.gallery,
   });
 
   @override
@@ -37,8 +41,17 @@ class _ScannerScreenState extends State<ScannerScreen> {
       isGalleryImport: false,
     );
     manager.documentScanner = DocumentScanner(options: manager.options);
-    manager.selectedImages =
-        List.generate(manager.scannedImages.length, (_) => false);
+    if (widget.gallery == 'gallery') {
+      // If gallery is used, mark all images as selected by default
+      manager.selectedImages =
+          List.generate(manager.scannedImages.length, (_) => true);
+    } else {
+      // Otherwise, initialize with no selected images
+      manager.selectedImages =
+          List.generate(manager.scannedImages.length, (_) => false);
+    }
+    // manager.selectedImages =
+    //     List.generate(manager.scannedImages.length, (_) => false);
   }
 
   @override
@@ -63,9 +76,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
       });
     } on PlatformException catch (e) {
       setState(() => manager.isScanning = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error scanning document: ${e.message}')),
-      );
+      Fluttertoast.showToast(
+          msg: "Error scanning document: ${e.message}",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.blue);
     }
   }
 
@@ -304,6 +319,35 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
+  void _pickImagesFromGallery(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile>? images = await picker.pickMultiImage();
+
+    if (images != null && images.isNotEmpty) {
+      // Map for fast lookup of existing images
+      Map<String, bool> existingSelections = {
+        for (int i = 0; i < manager.scannedImages.length; i++)
+          manager.scannedImages[i]: manager.selectedImages[i],
+      };
+
+      for (XFile image in images) {
+        String imagePath = image.path;
+
+        // Check if the image already exists
+        if (existingSelections.containsKey(imagePath)) {
+          // Retain previous selection status
+          continue;
+        } else {
+          // Add new image and mark it as selected
+          manager.scannedImages.add(imagePath);
+          manager.selectedImages.add(true); // Mark new image as selected
+        }
+      }
+
+      setState(() {}); // Refresh UI
+    } 
+  }
+
   List<String> _getSelectedImages() {
     List<String> selectedPaths = [];
     for (int i = 0; i < manager.selectedImages.length; i++) {
@@ -382,9 +426,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _startScan,
-        child: Icon(Icons.camera),
+        onPressed: () {
+          widget.gallery == 'gallery'
+              ? _pickImagesFromGallery(context)
+              : _startScan();
+        },
+        child: widget.gallery == 'gallery'
+            ? Icon(Icons.image)
+            : Icon(Icons.camera),
         backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
       ),
     );
   }

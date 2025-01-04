@@ -15,7 +15,7 @@ class LoginView2 extends StatefulWidget {
 
 class _LoginView2State extends State<LoginView2> {
   bool isLoading = false;
-  final _formKey = GlobalKey<FormState>();
+  // final _formKey = GlobalKey<FormState>();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   bool _showButtons = false;
