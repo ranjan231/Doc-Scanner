@@ -407,6 +407,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+       
         actions: [
           ElevatedButton(
             onPressed: _showShareOptions,
@@ -422,6 +423,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ),
       body: Column(
         children: [
+          if (widget.gallery==null)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Please select an image before you can share.',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
           Expanded(child: _buildScanResult()),
         ],
       ),

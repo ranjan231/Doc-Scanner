@@ -82,8 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
-
   Future<void> _startScan() async {
     setState(() => manager.isScanning = true);
     try {
@@ -209,34 +207,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-    void _pickImagesFromGallery(BuildContext context) async {
+  void _pickImagesFromGallery(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile>? images = await picker.pickMultiImage();
 
+    if (images != null && images.isNotEmpty) {
+      // Convert selected images into a list of file paths
+      List<String> imagePaths = images.map((image) => image.path).toList();
 
-  final ImagePicker picker = ImagePicker();
-  final List<XFile>? images = await picker.pickMultiImage(); 
-
-  if (images != null && images.isNotEmpty) {
-    // Convert selected images into a list of file paths
-    List<String> imagePaths = images.map((image) => image.path).toList();
-
-    // Navigate to the ScannerScreen with selected images
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ScannerScreen(
-          scannedImages: imagePaths,
-          gallery:'gallery'
+      // Navigate to the ScannerScreen with selected images
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              ScannerScreen(scannedImages: imagePaths, gallery: 'gallery'),
+          fullscreenDialog: true,
         ),
-        fullscreenDialog: true,
-      ),
-    );
-  } else {
-    // Show a message if no image is selected
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No images selected.')),
-    );
+      );
+    } else {
+      // Show a message if no image is selected
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No images selected.')),
+      );
+    }
   }
-}
-
 
   void _onItemTapped(int index) {
     if (index != 2) {
@@ -303,7 +296,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildCardItem(Icons.camera, "Smart Scan", Colors.blue),
                 _buildCardItem(Icons.image, "Import Image", Colors.green),
-                _buildCardItem(Icons.picture_as_pdf, "Word to PDF", Colors.orange),
+                _buildCardItem(
+                    Icons.picture_as_pdf, "Word to PDF", Colors.orange),
                 _buildCardItem(Icons.compress, "Compress PDF", Colors.pink),
                 _buildCardItem(Icons.text_fields, "Image to Text", Colors.teal),
                 _buildCardItem(Icons.article, "PDF to Word", Colors.indigo),
@@ -338,44 +332,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       document.data() as Map<String, dynamic>;
                   print('indera: ${data['image']}');
                   return ListTile(
-                    leading: data['image'] != null && data['image'].isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: data['image'].startsWith('http')
-                                ? Image.network(
-                                    data['image'],
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      print('Error loading image: $error');
-                                      return Icon(Icons.broken_image,
-                                          color: Colors.red, size: 40);
-                                    },
-                                  )
-                                : Image.file(
+                    leading: (data['image'] != null && data['image'].isNotEmpty)
+                        ? (data['image'].startsWith('http')
+                            ? Image.network(
+                                data['image'],
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                              )
+                            : (File(data['image']).existsSync()
+                                ? Image.file(
                                     File(data['image']),
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.contain,
-                                  ),
-                          )
+                                  )
+                                : Icon(Icons.broken_image,
+                                    color: Colors.red, size: 40)))
                         : Icon(Icons.insert_drive_file,
                             color: Colors.grey, size: 40),
                     title: Text(data['label'] ?? 'Unknown Document'),
@@ -430,20 +403,15 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         } else if (label == 'Smart Scan') {
           _startScan();
-        }
-        else if (label == 'Word to PDF') {
+        } else if (label == 'Word to PDF') {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => WordToPdfConverter(),
               fullscreenDialog: true,
             ),
           );
-        }
-        else if (label == 'Import Image') {
-          
-
+        } else if (label == 'Import Image') {
           _pickImagesFromGallery(context);
-       
         }
       },
       child: Column(
