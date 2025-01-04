@@ -7,7 +7,7 @@ import 'package:flutterpracticeversion22/Screen/privacypolicyscreen/privacypolic
 import 'package:flutterpracticeversion22/Screen/termsofservice/termsofservice.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutterpracticeversion22/Screen/SigninScreen/SigninScreen.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

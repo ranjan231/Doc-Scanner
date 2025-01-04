@@ -9,11 +9,12 @@ import 'package:flutterpracticeversion22/Screen/CameraScreen/CameraScreen.dart';
 import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/CompresspdfScreen.dart';
 import 'package:flutterpracticeversion22/Screen/DocScreen/DocsScreen.dart';
 import 'package:flutterpracticeversion22/Screen/ProfileScreen/ProfileScreen.dart';
+import 'package:flutterpracticeversion22/Screen/WordToPdfScreen/WordToPdf.dart';
 import 'package:flutterpracticeversion22/Screen/pdftowordScreen/pdftowordScreen.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
-
+import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -29,6 +30,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   var manager = Controller();
   final HomeController homeController = HomeController();
+
+  final ImagePicker _picker = ImagePicker();
   String? userEmail;
   int _selectedIndex = 0;
   @override
@@ -105,9 +108,11 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } on PlatformException catch (e) {
       setState(() => manager.isScanning = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error scanning document: ${e.message}')),
-      );
+      Fluttertoast.showToast(
+          msg: "Error scanning document: ${e.message}",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP,
+          backgroundColor: Colors.blue);
     }
   }
 
@@ -124,16 +129,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 25),
         child: _widgetOptions[_selectedIndex],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
+        type: BottomNavigationBarType.shifting,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
+        selectedFontSize: 16,
         items: [
           BottomNavigationBarItem(
             icon: Image.asset(
@@ -166,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'assets/images/camera.png',
                   width: 24,
                   height: 24,
-                  // color: Colors.blue,
+                  color: Colors.white,
                 ),
                 onPressed: () {
                   _startScan();
@@ -198,6 +205,30 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  void _pickImagesFromGallery(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile>? images = await picker.pickMultiImage();
+
+    if (images != null && images.isNotEmpty) {
+      // Convert selected images into a list of file paths
+      List<String> imagePaths = images.map((image) => image.path).toList();
+
+      // Navigate to the ScannerScreen with selected images
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              ScannerScreen(scannedImages: imagePaths, gallery: 'gallery'),
+          fullscreenDialog: true,
+        ),
+      );
+    } else {
+      // Show a message if no image is selected
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No images selected.')),
+      );
+    }
   }
 
   void _onItemTapped(int index) {
@@ -251,32 +282,26 @@ class _HomeScreenState extends State<HomeScreen> {
         Padding(
           padding: const EdgeInsets.all(10.0),
           child: Card(
+            color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
             elevation: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                children: [
-                  _buildCardItem(Icons.camera, "Smart Scan", Colors.blue),
-                  _buildCardItem(
-                      Icons.picture_as_pdf, "PDF Tools", Colors.green),
-                  _buildCardItem(Icons.image, "Import Picture", Colors.orange),
-                  _buildCardItem(
-                      Icons.insert_drive_file, "Import File", Colors.purple),
-                  _buildCardItem(Icons.compress, "Compress PDF", Colors.pink),
-                  _buildCardItem(
-                      Icons.text_fields, "Image to Text", Colors.teal),
-                  _buildCardItem(Icons.article, "PDF to Word", Colors.indigo),
-                  _buildCardItem(Icons.more_horiz, "More", Colors.brown),
-                ],
-              ),
+            child: GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 5,
+              crossAxisSpacing: 5,
+              children: [
+                _buildCardItem(Icons.camera, "Smart Scan", Colors.blue),
+                _buildCardItem(Icons.image, "Import Image", Colors.green),
+                _buildCardItem(
+                    Icons.picture_as_pdf, "Word to PDF", Colors.orange),
+                _buildCardItem(Icons.compress, "Compress PDF", Colors.pink),
+                _buildCardItem(Icons.text_fields, "Image to Text", Colors.teal),
+                _buildCardItem(Icons.article, "PDF to Word", Colors.indigo),
+              ],
             ),
           ),
         ),
@@ -307,47 +332,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       document.data() as Map<String, dynamic>;
                   print('indera: ${data['image']}');
                   return ListTile(
-                    leading: data['image'] != null && data['image'].isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: data['image'].startsWith('http')
-                                ? Image.network(
-                                    data['image'],
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      print('Error loading image: $error');
-                                      return Icon(Icons.broken_image,
-                                          color: Colors.red, size: 40);
-                                    },
-                                  )
-                                : Image.file(
+                    leading: (data['image'] != null && data['image'].isNotEmpty)
+                        ? (data['image'].startsWith('http')
+                            ? Image.network(
+                                data['image'],
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                              )
+                            : (File(data['image']).existsSync()
+                                ? Image.file(
                                     File(data['image']),
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.contain,
-                                  ),
-                          )
+                                  )
+                                : Icon(Icons.broken_image,
+                                    color: Colors.red, size: 40)))
                         : Icon(Icons.insert_drive_file,
                             color: Colors.grey, size: 40),
-
                     title: Text(data['label'] ?? 'Unknown Document'),
                     subtitle: Text(data['timestamp']?.toDate().toString() ??
                         'No date available'),
@@ -372,6 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey),
       onTap: () {
+        // image
         print('$label tapped');
       },
     );
@@ -397,13 +401,24 @@ class _HomeScreenState extends State<HomeScreen> {
               fullscreenDialog: true,
             ),
           );
+        } else if (label == 'Smart Scan') {
+          _startScan();
+        } else if (label == 'Word to PDF') {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => WordToPdfConverter(),
+              fullscreenDialog: true,
+            ),
+          );
+        } else if (label == 'Import Image') {
+          _pickImagesFromGallery(context);
         }
       },
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 22,
+            radius: 30,
             backgroundColor: color.withOpacity(0.2),
             child: Icon(iconData, color: color),
           ),
@@ -411,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10),
+            style: const TextStyle(fontSize: 12),
           ),
         ],
       ),
