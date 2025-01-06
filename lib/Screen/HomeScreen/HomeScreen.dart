@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -251,15 +252,60 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // void _openDocument(String filePath) async {
+  //   await requestStoragePermission(); // Ensure permissions are granted
+  //   final result = await OpenFile.open(filePath);
+  //   if (result.type != ResultType.done) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Could not open document: ${result.message}')),
+  //     );
+  //   }
+  // }
+
   void _openDocument(String filePath) async {
-    await requestStoragePermission(); // Ensure permissions are granted
+  await requestStoragePermission();
+
+  File file = File(filePath);
+  if (file.existsSync()) {
     final result = await OpenFile.open(filePath);
     if (result.type != ResultType.done) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not open document: ${result.message}')),
       );
     }
+  } else {
+    // File doesn't exist locally, fetch from Firestore and recreate it
+    String? documentId;
+    String? base64Content;
+    
+    final query = await FirebaseFirestore.instance
+        .collection('documents')
+        .where('filePath', isEqualTo: filePath)
+        .get();
+    
+    if (query.docs.isNotEmpty) {
+      documentId = query.docs.first.id;
+      base64Content = query.docs.first['base64Content'];
+    }
+    
+    if (base64Content != null) {
+      Uint8List bytes = base64Decode(base64Content);
+      await file.writeAsBytes(bytes);
+
+      final result = await OpenFile.open(file.path);
+      if (result.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open document: ${result.message}')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File not found on server.')),
+      );
+    }
   }
+}
+
 
   Widget _buildHomeScreen() {
     return Column(

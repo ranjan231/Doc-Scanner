@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -210,6 +211,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
+  Future<String> _convertImageToBase64(String imagePath) async {
+  final bytes = await File(imagePath).readAsBytes();
+  return base64Encode(bytes);
+}
+
   Future<void> _saveDocumentToFirestore(
       User? user, String filePath, String fileType, fileName) async {
     String? userEmail;
@@ -242,7 +248,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
           SnackBar(content: Text('A document with this name already exists.')),
         );
       } else {
+         // Convert image to Base64
+      String base64Image = await _convertImageToBase64(filePath);
+
         await firestore.collection('documents').add({
+          'base64Content': base64Image,
           'filePath': filePath,
           'fileType': fileType,
           'timestamp': FieldValue.serverTimestamp(),

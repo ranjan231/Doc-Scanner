@@ -20,7 +20,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   User? user;
   String? displayName;
   String? email;
-  String? photoURL;
+  String? photoURL; 
 
   @override
   void initState() {
@@ -123,7 +123,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ? Text(
                         displayName != null && displayName!.isNotEmpty
                             ? displayName![0].toUpperCase()
-                            : 'G', // Default letter 'G' for Guest User
+                            : '', // Default letter 'G' for Guest User
                         style:
                             const TextStyle(fontSize: 30, color: Colors.white),
                       )
@@ -134,12 +134,12 @@ class ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 10),
               Text(
-                displayName ?? 'Guest User',
+                displayName ?? "" ,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 5),
               Text(
-                email ?? 'No email available',
+                email ?? "",
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               // const SizedBox(height: 20),
