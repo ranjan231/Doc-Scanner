@@ -11,6 +11,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:share/share.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -32,22 +33,21 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   var manager = homeScreenManger();
-  var provider=HomeScreenProvider();
+  var provider = HomeScreenProvider();
 
   @override
   void initState() {
     super.initState();
-    // manager=provider.manager;
-
+    manager=provider.manager;
 
     manager.scannedImages = widget.scannedImages;
-    provider.options = DocumentScannerOptions(
+    manager.options = DocumentScannerOptions(
       pageLimit: 1,
       documentFormat: DocumentFormat.jpeg,
       mode: ScannerMode.full,
       isGalleryImport: false,
     );
-    provider.documentScanner = DocumentScanner(options: provider.options);
+    manager.documentScanner = DocumentScanner(options: manager.options);
     if (widget.gallery == 'gallery') {
       // If gallery is used, mark all images as selected by default
       manager.selectedImages =
@@ -70,7 +70,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Future<void> _startScan() async {
     setState(() => manager.isScanning = true);
     try {
-      final result = await provider.documentScanner.scanDocument();
+      final result = await manager.documentScanner.scanDocument();
       setState(() {
         manager.scanResult = result;
         if (manager.scanResult!.images.isNotEmpty) {
@@ -92,9 +92,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   void _toggleImageSelection(int index) {
-    setState(() {
-      manager.selectedImages[index] = !manager.selectedImages[index];
-    });
+    manager.selectedImages[index] = !manager.selectedImages[index];
+    provider.refresh();
   }
 
   Future<void> _showShareOptions() async {
@@ -218,9 +217,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   Future<String> _convertImageToBase64(String imagePath) async {
-  final bytes = await File(imagePath).readAsBytes();
-  return base64Encode(bytes);
-}
+    final bytes = await File(imagePath).readAsBytes();
+    return base64Encode(bytes);
+  }
 
   Future<void> _saveDocumentToFirestore(
       User? user, String filePath, String fileType, fileName) async {
@@ -254,8 +253,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
           SnackBar(content: Text('A document with this name already exists.')),
         );
       } else {
-         // Convert image to Base64
-      String base64Image = await _convertImageToBase64(filePath);
+        // Convert image to Base64
+        String base64Image = await _convertImageToBase64(filePath);
 
         await firestore.collection('documents').add({
           'base64Content': base64Image,
@@ -300,8 +299,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
       await outputFile.writeAsBytes(await pdf.save());
 
       Share.shareFiles([outputFile.path], text: 'Here is the document as PDF!');
-
-      await _saveDocumentToFirestore(user, outputFile.path, 'PDF', fileName);
+      if (widget.gallery != 'gallery') {
+        await _saveDocumentToFirestore(user, outputFile.path, 'PDF', fileName);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No images selected to share.')),
@@ -320,10 +320,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
       for (int i = 0; i < selectedPaths.length; i++) {
         final oldFile = File(selectedPaths[i]);
         final newFilePath = '${directory.path}/$fileName.png';
-        final newFile = await oldFile.copy(newFilePath);
-        updatedPaths.add(newFile.path);
-
-        await _saveDocumentToFirestore(user, newFile.path, 'PNG', fileName);
+        // final newFile = await oldFile.copy(newFilePath);
+        updatedPaths.add(oldFile.path);
+        if (widget.gallery != 'gallery') {
+          await _saveDocumentToFirestore(user, oldFile.path, 'PNG', fileName);
+        }
       }
 
       // Share the updated PNG files
@@ -361,7 +362,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       }
 
       setState(() {}); // Refresh UI
-    } 
+    }
   }
 
   List<String> _getSelectedImages() {
@@ -421,47 +422,51 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-       
-        actions: [
-          ElevatedButton(
-            onPressed: _showShareOptions,
-            child: Icon(Icons.share),
-          ),
-        ],
-        leading: IconButton(
-          icon: Icon(Icons.close),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: Column(
-        children: [
-          if (widget.gallery==null)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Please select an image before you can share.',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+    return Consumer<HomeScreenProvider>(builder: (context, value, child) {
+      return Scaffold(
+        appBar: AppBar(
+          actions: [
+            ElevatedButton(
+              onPressed: _getSelectedImages().isEmpty
+              ?null
+              :
+               _showShareOptions,
+              child: Icon(Icons.share),
             ),
+          ],
+          leading: IconButton(
+            icon: Icon(Icons.close),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
           ),
-          Expanded(child: _buildScanResult()),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          widget.gallery == 'gallery'
-              ? _pickImagesFromGallery(context)
-              : _startScan();
-        },
-        child: widget.gallery == 'gallery'
-            ? Icon(Icons.image)
-            : Icon(Icons.camera),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-    );
+        ),
+        body: Column(
+          children: [
+            if (widget.gallery == null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Please select an image before you can share.',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+            Expanded(child: _buildScanResult()),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            widget.gallery == 'gallery'
+                ? _pickImagesFromGallery(context)
+                : _startScan();
+          },
+          child: widget.gallery == 'gallery'
+              ? Icon(Icons.image)
+              : Icon(Icons.camera),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+        ),
+      );
+    });
   }
 }

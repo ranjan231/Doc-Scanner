@@ -25,13 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     provider.initializeUserEmail();
-    provider.options = DocumentScannerOptions(
+     manager=provider.manager;
+    manager.options = DocumentScannerOptions(
       pageLimit: 1,
       documentFormat: DocumentFormat.jpeg,
       mode: ScannerMode.full,
       isGalleryImport: false,
     );
-    provider.documentScanner = DocumentScanner(options: provider.options);
+    manager.documentScanner = DocumentScanner(options: manager.options);
   }
 
   List<Widget> get _widgetOptions => <Widget>[
