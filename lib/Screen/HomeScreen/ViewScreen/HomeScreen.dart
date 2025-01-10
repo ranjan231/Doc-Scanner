@@ -1,7 +1,8 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutterpracticeversion22/Core/Toaster.dart';
+import 'package:flutterpracticeversion22/Core/show_alter.dart';
 import 'package:flutterpracticeversion22/Provider/HomeScreenProvier.dart';
 import 'package:flutterpracticeversion22/Screen/CompresspdfScreen/ViewScreen/CompresspdfScreen.dart';
 import 'package:flutterpracticeversion22/Screen/DocScreen/DocsScreen.dart';
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     provider.initializeUserEmail();
-     manager=provider.manager;
+    manager = provider.manager;
     manager.options = DocumentScannerOptions(
       pageLimit: 1,
       documentFormat: DocumentFormat.jpeg,
@@ -200,33 +201,49 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: snapshot.data!.docs.map((document) {
                   Map<String, dynamic> data =
                       document.data() as Map<String, dynamic>;
-                  print('indera: ${data['image']}');
+                  String documentId = document.id; // Get the document ID
+
                   return ListTile(
-                    leading:
-                        // (data['image'] != null && data['image'].isNotEmpty)
-                        //     ? (data['image'].startsWith('http')
-                        //         ? Image.network(
-                        //             data['image'],
-                        //             width: 40,
-                        //             height: 40,
-                        //             fit: BoxFit.cover,
-                        //           )
-                        //         : (File(data['image']).existsSync()
-                        //             ? Image.file(
-                        //                 File(data['image']),
-                        //                 width: 60,
-                        //                 height: 60,
-                        //                 fit: BoxFit.contain,
-                        //               )
-                        //             : Icon(Icons.broken_image,
-                        //                 color: Colors.red, size: 40)))
-                        //     :
-                        Icon(Icons.insert_drive_file,
-                            color: Colors.grey, size: 40),
+                    leading: Icon(Icons.insert_drive_file,
+                        color: Colors.grey, size: 40),
                     title: Text(data['label'] ?? 'Unknown Document'),
-                    subtitle: Text(data['timestamp']?.toDate().toString() ??
-                        'No date available'),
-                    trailing: Icon(Icons.more_vert),
+                    subtitle: Text(
+                      data['timestamp']?.toDate().toString() ??
+                          'No date available',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            ShowAlert.showAlertDialog(
+                                context: context,
+                                title: "Confirm Deletion",
+                                content:
+                                    "Are you sure you want to delete this document?",
+                                onYes: () async {
+                                  try {
+                                    await FirebaseFirestore.instance
+                                        .collection(
+                                            'documents') // Replace with your collection name
+                                        .doc(documentId)
+                                        .delete();
+                                    Toaster().MessageController(
+                                        "Document deleted successfully");
+                                    
+                                  } catch (e) {
+                                    Toaster().MessageController(
+                                        "Failed to delete document: $e");
+                                    
+                                  }
+                                },
+                                onNo: () {});
+                          },
+                        ),
+                        // Icon(Icons.more_vert),
+                      ],
+                    ),
                     onTap: () => provider.openDocument(data['filePath']),
                   );
                 }).toList(),
