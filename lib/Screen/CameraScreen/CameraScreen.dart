@@ -4,7 +4,9 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutterpracticeversion22/Controller/Controller.dart';
+
+import 'package:flutterpracticeversion22/Provider/HomeScreenProvier.dart';
+import 'package:flutterpracticeversion22/Screen/HomeScreen/Manager/HomeScreenManager.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:flutter/services.dart';
@@ -29,19 +31,23 @@ class ScannerScreen extends StatefulWidget {
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
-  var manager = Controller();
+  var manager = homeScreenManger();
+  var provider=HomeScreenProvider();
 
   @override
   void initState() {
     super.initState();
+    // manager=provider.manager;
+
+
     manager.scannedImages = widget.scannedImages;
-    manager.options = DocumentScannerOptions(
+    provider.options = DocumentScannerOptions(
       pageLimit: 1,
       documentFormat: DocumentFormat.jpeg,
       mode: ScannerMode.full,
       isGalleryImport: false,
     );
-    manager.documentScanner = DocumentScanner(options: manager.options);
+    provider.documentScanner = DocumentScanner(options: provider.options);
     if (widget.gallery == 'gallery') {
       // If gallery is used, mark all images as selected by default
       manager.selectedImages =
@@ -64,7 +70,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Future<void> _startScan() async {
     setState(() => manager.isScanning = true);
     try {
-      final result = await manager.documentScanner.scanDocument();
+      final result = await provider.documentScanner.scanDocument();
       setState(() {
         manager.scanResult = result;
         if (manager.scanResult!.images.isNotEmpty) {

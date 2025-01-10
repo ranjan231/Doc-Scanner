@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutterpracticeversion22/Screen/HomeScreen/HomeScreen.dart';
+import 'package:flutterpracticeversion22/Screen/HomeScreen/ViewScreen/HomeScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignInScreen extends StatefulWidget {

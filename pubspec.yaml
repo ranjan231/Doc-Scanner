@@ -62,6 +62,8 @@ dependencies:
   mime: ^1.0.6
   google_mlkit_text_recognition:
   aspose_words_cloud: ^24.10.0
+  photo_view:
+  provider:
 
 dev_dependencies:
   flutter_test:

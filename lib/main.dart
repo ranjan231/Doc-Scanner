@@ -1,8 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterpracticeversion22/Constant/Constant.dart';
-import 'package:flutterpracticeversion22/Screen/HomeScreen/HomeScreen.dart';
+import 'package:flutterpracticeversion22/Core/GlobalVaribale.dart';
+import 'package:flutterpracticeversion22/Screen/HomeScreen/ViewScreen/HomeScreen.dart';
 import 'package:flutterpracticeversion22/Screen/LoginScreen/LoginScreen.dart';
+import 'package:provider/provider.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutterpracticeversion22/fireBase.dart';
 
@@ -17,15 +20,39 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DOC SCANNER',
-      navigatorKey: Constant.navigatorKey,
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) {
+          var Provider = GlobalVariable.homeProvider;
+          return Provider;
+        }),
+        ChangeNotifierProvider(create: (_) {
+          var Provider = GlobalVariable.profileProvider;
+          return Provider;
+        }),
+        ChangeNotifierProvider(create: (_) {
+          var Provider = GlobalVariable.compressProvider;
+          return Provider;
+        }),
+         ChangeNotifierProvider(create: (_) {
+          var Provider = GlobalVariable.pdftToWordProvider;
+          return Provider;
+        }),
+         ChangeNotifierProvider(create: (_) {
+          var Provider = GlobalVariable.wordToPdfProvider;
+          return Provider;
+        }),
+      ],
+      child: MaterialApp(
+        title: 'DOC SCANNER',
+        navigatorKey: Constant.navigatorKey,
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+        ),
+        home: Initializer(),
       ),
-      home: Initializer(),
     );
   }
 }
