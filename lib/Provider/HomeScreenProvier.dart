@@ -21,8 +21,7 @@ class HomeScreenProvider extends ChangeNotifier {
   }
 
   var manager = homeScreenManger();
-  late DocumentScanner documentScanner;
-  late DocumentScannerOptions options;
+ 
    int selectedIndex = 0;
 
   void onItemTapped(int index) {
@@ -176,7 +175,7 @@ class HomeScreenProvider extends ChangeNotifier {
 
     try {
       
-      final result = await documentScanner.scanDocument();
+      final result = await manager.documentScanner.scanDocument();
 
       manager.scanResult = result;
       refresh();
